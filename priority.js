@@ -26,8 +26,8 @@ function runPriority() {
     let time = 0;
     processes.forEach(proc => {
         proc.st = time;
-        proc.wt = time;
         proc.ft = time + proc.bt;
+        proc.wt = proc.st; 
         proc.tat = proc.bt + proc.wt;
         time += proc.bt;
     });
@@ -44,22 +44,26 @@ function displayResults(processes) {
     let labels = [];
     let wtData = [];
     let tatData = [];
+    let btData = []; 
 
     processes.forEach(proc => {
-        results.innerHTML += `Proses ${proc.pid}: WT = ${proc.wt}ms, TAT = ${proc.tat}ms\n`;
+        results.innerHTML += `Proses ${proc.pid}: ST = ${proc.st}ms, CT = ${proc.ft}ms, WT = ${proc.wt}ms, TAT = ${proc.tat}ms, BT = ${proc.bt}ms\n`;
 
         labels.push(`P${proc.pid}`);
         wtData.push(proc.wt);
         tatData.push(proc.tat);
+        btData.push(proc.bt);
     });
 
     let totalWT = processes.reduce((acc, proc) => acc + proc.wt, 0);
     let totalTAT = processes.reduce((acc, proc) => acc + proc.tat, 0);
+    let totalBT = processes.reduce((acc, proc) => acc + proc.bt, 0); 
     let avgWT = totalWT / processes.length;
     let avgTAT = totalTAT / processes.length;
 
-    results.innerHTML += `\nRata-rata Waktu Tunggu: ${avgWT.toFixed(2)}ms`;
+    results.innerHTML += `\nRata-rata Waiting Time: ${avgWT.toFixed(2)}ms`;
     results.innerHTML += `\nRata-rata Turn Around Time: ${avgTAT.toFixed(2)}ms`;
+    results.innerHTML += `\nTotal Burst Time: ${totalBT}ms`;
 
     createBarChart(labels, wtData, tatData);
 }
@@ -72,7 +76,7 @@ function createBarChart(labels, wtData, tatData) {
             labels: labels,
             datasets: [
                 {
-                    label: 'Waktu Tunggu',
+                    label: 'Waiting Time',
                     backgroundColor: 'rgba(54, 162, 235, 0.5)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1,
