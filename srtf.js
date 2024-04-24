@@ -68,8 +68,8 @@ function displayResults(processes, order) {
     let tatData = [];
 
     processes.forEach(proc => {
-        let startTime = proc.at; // Start time adalah arrival time
-        let completionTime = proc.ft; // Completion time adalah finish time
+        let startTime = proc.at; 
+        let completionTime = proc.ft; 
         let waitingTime = proc.wt;
         let turnaroundTime = proc.tat;
 
@@ -88,7 +88,6 @@ function displayResults(processes, order) {
     results.innerHTML += `\nRata-rata Waktu Tunggu: ${avgWT.toFixed(2)}ms`;
     results.innerHTML += `\nRata-rata Turn Around Time: ${avgTAT.toFixed(2)}ms`;
 
-    // Panggil fungsi untuk membuat grafik batang
     createBarChart(labels, wtData, tatData);
 }
 
