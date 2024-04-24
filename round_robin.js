@@ -4,7 +4,9 @@ function acceptProcesses() {
     container.innerHTML = '';
     for (let i = 0; i < num; i++) {
         container.innerHTML += `<div>
-            <label>Proses ${i} Burst Time: </label>
+            <label>Proses ${i} Arrival Time: </label>
+            <input type="number" id="at${i}">
+            <label> Burst Time: </label>
             <input type="number" id="bt${i}">
         </div>`;
     }
@@ -15,33 +17,52 @@ function runRoundRobin() {
     const quantum = parseInt(document.getElementById('quantumTime').value);
     let processes = [];
     for (let i = 0; i < num; i++) {
+        let at = parseInt(document.getElementById(`at${i}`).value);
         let bt = parseInt(document.getElementById(`bt${i}`).value);
-        processes.push({ pid: i, bt: bt, remaining: bt, ft: 0, wt: 0, tat: 0, lastActive: 0 });
+        processes.push({ pid: i, at: at, bt: bt, remaining: bt, ft: 0, wt: 0, tat: 0, lastActive: 0 });
     }
 
     let time = 0;
     let finished = 0;
+    let currentProcess = null;
     const order = [];
 
     while (finished < processes.length) {
-        let done = true;
-        processes.forEach(proc => {
-            if (proc.remaining > 0) {
-                done = false;
-                order.push(proc.pid);
-                let slice = Math.min(proc.remaining, quantum);
-                time += slice;
-                proc.remaining -= slice;
-                proc.lastActive = time;
-                if (proc.remaining === 0) {
-                    proc.ft = time;
-                    proc.tat = proc.ft;
-                    proc.wt = proc.ft - proc.bt;
-                    finished++;
-                }
+        currentProcess = null;
+        for (let i = 0; i < processes.length; i++) {
+            if (processes[i].remaining > 0 && processes[i].at <= time) {
+                currentProcess = processes[i];
+                break;
             }
-        });
-        if (done) break;
+        }
+
+        if (currentProcess === null) {
+            time++;
+            continue;
+        }
+
+        order.push(currentProcess.pid);
+        let slice = Math.min(currentProcess.remaining, quantum);
+        time += slice;
+        currentProcess.remaining -= slice;
+        currentProcess.lastActive = time;
+
+        if (currentProcess.remaining === 0) {
+            currentProcess.ft = time;
+            currentProcess.tat = currentProcess.ft - currentProcess.at;
+            currentProcess.wt = currentProcess.tat - currentProcess.bt;
+            finished++;
+        }
+
+        for (let i = 0; i < processes.length; i++) {
+            if (processes[i].at <= time && processes[i] !== currentProcess && processes[i].remaining > 0) {
+                order.push(processes[i].pid);
+            }
+        }
+
+        if (currentProcess.remaining > 0) {
+            order.push(currentProcess.pid);
+        }
     }
 
     displayResults(processes, order);
@@ -53,17 +74,17 @@ function displayResults(processes, order) {
     ganttChart.innerHTML = '';
     results.innerHTML = '';
 
-    order.forEach(pid => {
-        ganttChart.innerHTML += `| P${pid} `;
-    });
-    ganttChart.innerHTML += '|';
-
     let labels = [];
     let wtData = [];
     let tatData = [];
 
     processes.forEach(proc => {
-        results.innerHTML += `Proses ${proc.pid}: WT = ${proc.wt}ms, TAT = ${proc.tat}ms\n`;
+        let startTime = proc.at; 
+        let completionTime = proc.ft; 
+        let waitingTime = proc.wt;
+        let turnaroundTime = proc.tat;
+
+        results.innerHTML += `Proses ${proc.pid}: ST = ${startTime}ms, CT = ${completionTime}ms, WT = ${waitingTime}ms, TAT = ${turnaroundTime}ms\n`;
 
         labels.push(`P${proc.pid}`);
         wtData.push(proc.wt);
@@ -75,10 +96,9 @@ function displayResults(processes, order) {
     let avgWT = totalWT / processes.length;
     let avgTAT = totalTAT / processes.length;
 
-    results.innerHTML += `\nRata-rata Waktu Tunggu: ${avgWT.toFixed(2)}ms`;
+    results.innerHTML += `\nRata-rata Waiting Time: ${avgWT.toFixed(2)}ms`;
     results.innerHTML += `\nRata-rata Turn Around Time: ${avgTAT.toFixed(2)}ms`;
 
-    // Panggil fungsi untuk membuat grafik batang
     createBarChart(labels, wtData, tatData);
 }
 
@@ -90,7 +110,7 @@ function createBarChart(labels, wtData, tatData) {
             labels: labels,
             datasets: [
                 {
-                    label: 'Waktu Tunggu',
+                    label: 'Waiting Time',
                     backgroundColor: 'rgba(54, 162, 235, 0.5)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1,
